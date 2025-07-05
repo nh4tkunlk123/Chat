@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Application</title>
-    <!-- Add Prism.js for code highlighting -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
     <style>
@@ -401,6 +400,7 @@
             display: flex;
             justify-content: space-between;
             padding-top: 8px;
+            position: relative; /* Added for emoji picker positioning */
         }
 
         .file-button {
@@ -550,21 +550,66 @@
             white-space: pre-wrap;
         }
 
-        /* Emoji picker */
+        /* Emoji picker styles */
         .emoji-btn {
             background: none;
             border: none;
-            color: var(--text-muted);
-            font-size: 18px;
+            color: #9d4edd;
+            font-size: 20px;
             cursor: pointer;
             padding: 5px;
             border-radius: var(--border-radius-sm);
             transition: var(--transition);
+            margin-left: 10px;
         }
 
         .emoji-btn:hover {
-            background-color: var(--primary-light);
-            color: var(--primary-color);
+            background-color: rgba(157, 78, 221, 0.1);
+            color: #7b2cbf;
+        }
+
+        .emoji-picker {
+            position: absolute;
+            bottom: 60px; /* Position above the input field */
+            right: 0;
+            background-color: rgba(30, 11, 63, 0.9);
+            border: 1px solid rgba(128, 0, 255, 0.4);
+            border-radius: var(--border-radius-md);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+            padding: 10px;
+            display: none;
+            /* Changed to allow more columns, e.g., 8-10 emojis wide */
+            grid-template-columns: repeat(8, 1fr); /* Adjusted grid for wider display */
+            gap: 5px;
+            max-height: 200px;
+            /* Removed max-width to allow it to expand based on columns */
+            overflow-y: auto;
+            z-index: 20;
+            animation: fadeInScale 0.2s ease-out;
+            transform-origin: bottom right;
+        }
+
+        .emoji-picker.show {
+            display: grid;
+        }
+
+        .emoji-picker button {
+            background: none;
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+            padding: 3px;
+            border-radius: var(--border-radius-sm);
+            transition: background-color 0.2s ease;
+        }
+
+        .emoji-picker button:hover {
+            background-color: rgba(157, 78, 221, 0.2);
+        }
+
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
         }
     </style>
 </head>
@@ -583,7 +628,6 @@
 
 <div class="chat-container">
     <div class="messages-container" id="messagesContainer">
-        <!-- Messages will be added dynamically here -->
         <div class="message system">
             <span>Welcome! Connect to start chatting.</span>
         </div>
@@ -604,11 +648,13 @@
             </div>
             <div class="message-actions">
                 <label for="fileInput" class="file-button">Attach File</label>
-                <input type="file" id="fileInput" 
+                <input type="file" id="fileInput"
                        accept="image/*,video/*,.mp3,.wav,.ogg,.aac,.flac,.m4a,.pdf,.doc,.docx,.xls,.xlsx,.zip"
                        multiple="false"
                        style="display: none;">
+                <button class="emoji-btn" id="emojiButton">😊</button>
             </div>
+            <div id="emojiPicker" class="emoji-picker"></div>
         </div>
 
         <button id="sendButton" class="send-button">
@@ -650,6 +696,8 @@
     const userDisplay = document.getElementById('userDisplay');
     const logoutButton = document.getElementById('logoutButton');
     const notification = document.getElementById('notification');
+    const emojiButton = document.getElementById('emojiButton');
+    const emojiPicker = document.getElementById('emojiPicker');
 
     // Variables
     let websocket;
@@ -1020,10 +1068,83 @@
         messageInput.value = '';
         selectedFile = null;
         filePreview.style.display = 'none';
+        messageInput.style.height = 'auto';
+        emojiPicker.classList.remove('show');
     }
 
+    // New: Emoji functionality
+    const emojis = [
+        '😀', '😁', '😂', '🤣', '😃', '😄', '😅', '😆', '😉', '😊', '😋', '😎', '🤩', '😏', '😮', '🤔',
+        '😐', '😑', '😒', '🙄', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '😇',
+        '🤠', '🤡', '🤥', '🤫', '🤭', '🧐', '🤓', '😈', '👿', '👹', '👺', '💀', '👻', '👽', '🤖', '💩',
+        '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾', '👍', '👎', '👏', '🙌', '🙏', '❤️', '💔',
+        '🔥', '✨', '🎉', '🎊', '💯', '🌈', '☀️', '⭐', '🌙', '⚡', '💧', '🌊', '🍎', '🍓', '🍕', '🍔',
+        '🌸', '🌼', '🌻', '🌹', '🌷', '🌿', '🍄', '🌳', '🌲', '🌵', '🌴', '🌾', '🍂', '🍁', '🌍', '🌎',
+        '🌏', '🏔️', '⛰️', '🌋', '🗻', '🏕️', '🏖️', '🏜️', '🏞️', '🌃', '🏙️', '🌆', '🌇', '🌉', '🌁', '♨️',
+        '🎠', '🎡', '🎢', '🎪', '🎭', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🎷', '🎺', '🎸', '🎻',
+        '🎲', '🎯', '🎳', '🎱', '🎮', '🎰', '🧩', '🏆', '🏅', '🎖️', '🎗️', '🎫', '🎟️', '🏠', '🏡', '🏢',
+        '🏣', '🏤', '🏥', '🏦', '🏨', '🏪', '🏫', '🏬', '🏭', '🏯', '🏰', '💒', '⛪', '🕌', '🕍', '🕋',
+        '⛩️', '🛤️', '🛣️', '🗺️', '📍', '📌', '📎', '📏', '📐', '✂️', '🖊️', '🖋️', '✒️', '✏️', '📝', '📖',
+        '📚', '📓', '📔', '📒', '📃', '📜', '📄', '📰', '🗞️', '📊', '📈', '📉', '📁', '📂', '🗂️', '🗓️',
+        '📅', '📆', '⌚', '📱', '📲', '💻', '🖥️', '🖨️', '⌨️', '🖱️', '🖲️', '💽', '💾', '💿', '📀', '🧮',
+        '💵', '💴', '💶', '💷', '💰', '💳', '💎', '💡', '🔦', '🔋', '🔌', '🔧', '🔨', '🔩', '⚙️', '⛓️',
+        '🛡️', '⚔️', '💣', '🔫', '🔪', '🗡️', '🔗', '🔒', '🔓', '🔑', '🗝️', '🔔', '🔕', '🔖', '🏷️', '🎁',
+        '🎈', '🎉', '🎃', '🎄', '🎆', '🎇', '✨', '🎈', '🎊', '🎀', '🎁', '🎂', '🍰', '🍪', '🍫', '🍬',
+        '🍭', '🍮', '🍯', '🍼', '🥛', '☕', '🍵', '🍶', '🍾', '🍷', '🍸', '🍹', '🍺', '🍻', '🥂', '🥃',
+        '🧊', '🍩', '🍪', '🍫', '🍬', '🍭', '🍮', '🍯', '🥞', '🧇', '🧀', '🍖', '🍗', '🥩', '🥓', '🍔',
+        '🍟', '🍕', '🌭', '🥪', '🌮', '🌯', '🥙', '🍳', '🥚', '🍞', '🥐', '🥖', '🥨', '🥯', '🍚', '🍙',
+        '🍘', '🍜', '🍝', '🍲', '🍛', '🍣', '🍱', '🍤', '🍥', '🥮', '🍢', '🍡', '🥟', '🥠', '🥡', '🦀',
+        '🦐', '🦑', '🦞', '🐠', '🐟', '🐡', '🦈', '🐙', '🐚', '🐌', '🦋', '🐛', '🐜', '🐝', '🐞', '🦗',
+        '🕷️', '🕸️', '🦂', '🦟', '🦠', '🐢', '🐍', '🦎', '🦖', '🦕', '🐳', '🐬', '🐋', '🦈', '🐊', '🐅',
+        '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐂', '🐄', '🐖', '🐏',
+        '🐑', '🐐', '🦌', '🐕', '🐩', '🐈', '🐓', '🦃', '🦅', '🦆', '🦢', '🦉', '🦩', '🦚', '🦜', '🕊️',
+        '🐇', '🐁', '🐀', '🐿️', '🦝', '🦡', '🐻', '🐨', '🐼', '🦊', '🐺', '🐗', '🐴', '🐎', '🦄', '🐝',
+        '🐛', '🦋', '🐌', '🐞', '🐜', '🦗', '🕷️', '🕸️', '🦂', '🦟', '🦠', '🐾', '🐻', '🐨', '🐼', '🦊',
+        '🐺', '🐗', '🐴', '🐎', '🦄', '🦌', '🐕', '🐩', '🐈', '🐓', '🦃', '🦅', '🦆', '🦢', '🦉', '🦩',
+        '🦚', '🦜', '🕊️', '🐇', '🐁', '🐀', '🐿️', '🦝', '🦡', '🐾', '🐉', '🐲', '🌵', '🎄', '🌲', '🌳',
+        '🌴', '🌱', '🌿', '☘️', '🍀', '🎍', '🎋', '🍂', '🍁', '🌾', '🌺', '🌻', '🌹', '🌷', '🌼', '🌸'
+    ];
+
+    function renderEmojis() {
+        emojiPicker.innerHTML = '';
+        emojis.forEach(emoji => {
+            const button = document.createElement('button');
+            button.textContent = emoji;
+            button.addEventListener('click', () => {
+                insertEmoji(emoji);
+                emojiPicker.classList.remove('show');
+            });
+            emojiPicker.appendChild(button);
+        });
+    }
+
+    function insertEmoji(emoji) {
+        const start = messageInput.selectionStart;
+        const end = messageInput.selectionEnd;
+        const value = messageInput.value;
+        messageInput.value = value.substring(0, start) + emoji + value.substring(end);
+        messageInput.focus();
+        messageInput.selectionStart = messageInput.selectionEnd = start + emoji.length;
+        messageInput.dispatchEvent(new Event('input'));
+    }
+
+    emojiButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        emojiPicker.classList.toggle('show');
+    });
+
+    // Hide emoji picker if clicked outside
+    document.addEventListener('click', (e) => {
+        if (!emojiPicker.contains(e.target) && e.target !== emojiButton) {
+            emojiPicker.classList.remove('show');
+        }
+    });
+
     // Connect to WebSocket on page load
-    window.addEventListener('DOMContentLoaded', connectWebSocket);
+    window.addEventListener('DOMContentLoaded', () => {
+        connectWebSocket();
+        renderEmojis();
+    });
 
     // Send message on button click
     sendButton.addEventListener('click', sendMessage);
