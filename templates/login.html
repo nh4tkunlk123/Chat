@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Chat Application</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        :root {
+            --primary-color: #4361ee;
+            --primary-light: rgba(67, 97, 238, 0.1);
+            --primary-dark: #3a56d4;
+            --accent-color: #3a0ca3;
+            --text-light: #f8f9fa;
+            --text-dark: #212529;
+            --text-muted: #6c757d;
+            --bg-light: #f2f2f2;
+            --bg-dark: #212529;
+            --bg-white: #ffffff;
+            --danger: #e74c3c;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --info: #3498db;
+            --border-radius-sm: 4px;
+            --border-radius-md: 8px;
+            --border-radius-lg: 12px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 15px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f6f9fc, #edf1f7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--text-dark);
+        }
+
+        .auth-container {
+            background-color: var(--bg-white);
+            width: 100%;
+            max-width: 400px;
+            padding: 30px;
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-md);
+            transition: var(--transition);
+            overflow: hidden;
+        }
+
+        .auth-container:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-5px);
+        }
+
+        .auth-title {
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 25px;
+            color: var(--primary-color);
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.05);
+        }
+
+        .tab-container {
+            display: flex;
+            margin-bottom: 25px;
+            border-bottom: 1px solid #eee;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tab-container::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 50%;
+            height: 2px;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            transition: var(--transition);
+            transform: translateX(0%);
+        }
+
+        .tab-container[data-active-tab="register"]::after {
+            transform: translateX(100%);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px 10px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-muted);
+            transition: var(--transition);
+            position: relative;
+            font-size: 15px;
+            letter-spacing: 0.3px;
+        }
+
+        .tab.active {
+            color: var(--primary-color);
+        }
+
+        .form-container {
+            display: none;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-container.active {
+            display: block;
+        }
+
+        .input-group {
+            margin-bottom: 18px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-dark);
+            font-size: 14px;
+            transition: var(--transition);
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius-md);
+            font-size: 15px;
+            transition: var(--transition);
+            background-color: #f9f9f9;
+        }
+
+        .input-group input:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px var(--primary-light);
+            background-color: white;
+        }
+
+        .input-group input:focus + label {
+            color: var(--primary-color);
+        }
+
+        .submit-button {
+            width: 100%;
+            padding: 12px 15px;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            border: none;
+            border-radius: var(--border-radius-md);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-top: 15px;
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);
+        }
+
+        .submit-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(67, 97, 238, 0.4);
+        }
+
+        .submit-button:active {
+            transform: translateY(1px);
+        }
+
+        .error-message {
+            color: var(--danger);
+            font-size: 14px;
+            margin-top: 15px;
+            text-align: center;
+            display: none;
+            padding: 8px;
+            border-radius: var(--border-radius-md);
+            background-color: rgba(231, 76, 60, 0.1);
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .info-message {
+            margin-top: 18px;
+            padding: 12px;
+            background-color: var(--bg-light);
+            border-radius: var(--border-radius-md);
+            font-size: 14px;
+            color: var(--text-muted);
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .success-message {
+            color: var(--success);
+            background-color: rgba(46, 204, 113, 0.1);
+            padding: 12px;
+            border-radius: var(--border-radius-md);
+            margin-top: 15px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .form-footer {
+            margin-top: 25px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .form-footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .form-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .form-divider {
+            position: relative;
+            text-align: center;
+            margin: 25px 0;
+        }
+
+        .form-divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background-color: #eee;
+            z-index: 1;
+        }
+
+        .form-divider span {
+            position: relative;
+            z-index: 2;
+            background-color: white;
+            padding: 0 12px;
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <h1 class="auth-title">Chat Application</h1>
+
+        <div class="tab-container">
+            <div class="tab active" data-form="login-form">Login</div>
+            <div class="tab" data-form="register-form">Register</div>
+        </div>
+
+        <div class="form-container active" id="login-form">
+            <form id="loginForm">
+                <div class="input-group">
+                    <label for="login-username">Username</label>
+                    <input type="text" id="login-username" required>
+                </div>
+                <div class="input-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                <button type="submit" class="submit-button">Login</button>
+            </form>
+            <div class="error-message" id="login-error"></div>
+        </div>
+
+        <div class="form-container" id="register-form">
+            <form id="registerForm">
+                <div class="input-group">
+                    <label for="register-username">Username</label>
+                    <input type="text" id="register-username" required>
+                </div>
+                <div class="input-group">
+                    <label for="register-password">Password</label>
+                    <input type="password" id="register-password" required>
+                </div>
+                <div class="input-group">
+                    <label for="register-confirm-password">Confirm Password</label>
+                    <input type="password" id="register-confirm-password" required>
+                </div>
+                <button type="submit" class="submit-button">Register</button>
+            </form>
+            <div class="error-message" id="register-error"></div>
+            <div class="info-message">
+                Create an account to start chatting
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching functionality
+        const tabs = document.querySelectorAll('.tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all tabs
+                tabs.forEach(tab => tab.classList.remove('active'));
+
+                // Add active class to clicked tab
+                tab.classList.add('active');
+
+                // Hide all forms
+                document.querySelectorAll('.form-container').forEach(form => {
+                    form.classList.remove('active');
+                });
+
+                // Show the selected form
+                const formToShow = tab.dataset.form;
+                document.getElementById(formToShow).classList.add('active');
+            });
+        });
+
+        // Login form handling
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+            const errorDiv = document.getElementById('login-error');
+
+            // Hide any previous errors
+            errorDiv.style.display = 'none';
+
+            const formData = new URLSearchParams();
+            formData.append('username', username);
+            formData.append('password', password);
+
+            try {
+                const response = await fetch('/api/login/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Store token in localStorage
+                    localStorage.setItem('chat_token', data.access_token);
+                    localStorage.setItem('chat_username', username);
+
+                    // Redirect to chat page
+                    window.location.href = '/chat';
+                } else {
+                    // Show error message
+                    errorDiv.textContent = data.detail || 'Login failed. Please check your credentials.';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Network error. Please try again.';
+                errorDiv.style.display = 'block';
+            }
+        });
+
+        // Registration form handling
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('register-username').value;
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('register-confirm-password').value;
+            const errorDiv = document.getElementById('register-error');
+
+            // Hide any previous errors
+            errorDiv.style.display = 'none';
+
+            // Check if passwords match
+            if (password !== confirmPassword) {
+                errorDiv.textContent = 'Passwords do not match.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/register/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username,
+                        password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Show success message and switch to login tab
+                    tabs[0].click(); // Switch to login tab
+                    const loginError = document.getElementById('login-error');
+                    loginError.textContent = 'Registration successful! You can now login.';
+                    loginError.style.color = '#2ecc71';
+                    loginError.style.display = 'block';
+
+                    // Pre-fill login form with the registered username
+                    document.getElementById('login-username').value = username;
+                } else {
+                    // Show error message
+                    errorDiv.textContent = data.detail || 'Registration failed.';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Network error. Please try again.';
+                errorDiv.style.display = 'block';
+            }
+        });
+
+        // Check if user is already logged in
+        window.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('chat_token');
+            if (token) {
+                // Redirect to chat page if already logged in
+                window.location.href = '/chat';
+            }
+        });
+    </script>
+</body>
+</html>
